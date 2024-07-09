@@ -1,0 +1,5 @@
+[config]
+rpc = "https://fullnode.mainnet.sui.io:443"
+
+[packages]
+Turbos = { id = "0x1a3c42ded7b75cdf4ebc7c7b7da9d1e1db49f16fcdca934fac003f35f39ecad9" }

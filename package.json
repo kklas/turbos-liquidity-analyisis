@@ -1,0 +1,35 @@
+{
+  "name": "typescript-node-project",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/main.js",
+  "type": "module",
+  "scripts": {
+    "build": "rm -rf dist && tsup src/main.ts --format esm",
+    "watch": "tsup src/main.ts --watch --format esm",
+    "check": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
+  },
+  "keywords": [],
+  "author": "",
+  "devDependencies": {
+    "@types/node": "^20.14.9",
+    "@typescript-eslint/eslint-plugin": "^7.15.0",
+    "@typescript-eslint/parser": "^7.15.0",
+    "eslint": "^9.6.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.1.3",
+    "prettier": "^3.3.2",
+    "tsup": "^8.1.0",
+    "typescript": "^5.5.3",
+    "typescript-eslint": "^7.15.0"
+  },
+  "dependencies": {
+    "@mysten/bcs": "^1.0.2",
+    "@mysten/sui": "^1.2.1",
+    "@mysten/sui.js": "^0.54.1",
+    "decimal.js": "^10.4.3",
+    "turbos-clmm-sdk": "^3.0.2"
+  }
+}
