@@ -9,12 +9,15 @@ import { phantom as p } from './gen/_framework/reified'
 
 const sdk = new TurbosSdk(Network.mainnet)
 
-const poolId = '0x2ce764106ace913ff43f3c1fd6a91454898a42710464cd60d220130eb78ca5ca'
+const poolId = '0x5eb2dfcdd1b15d2021328258f6d5ec081e9a0cdcfa9e13a0eaeb9b5f7505ca78'
 
-const USDT = '0xc060006111016b8a020ad5b33834984a437aaa7d3c74c18e09a95d48aceab08c::coin::COIN'
+const SUI = '0x2::sui::SUI'
 const USDC = '0x5d4b302506645c37ff133b98c4b50a5ae14841659738d6d733d59d0d217a93bf::coin::COIN'
 const FEE =
-  '0x91bfbc386a41afcfd9b2533058d7e915a1d3829089cc268ff4333d54d6339ca1::fee100bps::FEE100BPS'
+  '0x91bfbc386a41afcfd9b2533058d7e915a1d3829089cc268ff4333d54d6339ca1::fee3000bps::FEE3000BPS'
+
+const xDecimals = 1e9
+const yDecimals = 1e6
 
 const client = new SuiClient({
   url: getFullnodeUrl('mainnet'),
@@ -68,7 +71,7 @@ async function fetchData() {
     return Number(aVal - bVal)
   })
 
-  const pool = await Pool.r(p(USDT), p(USDC), p(FEE)).fetch(client, poolId)
+  const pool = await Pool.r(p(SUI), p(USDC), p(FEE)).fetch(client, poolId)
 
   return { pool, ticks }
 }
@@ -81,7 +84,7 @@ async function fetchAndSaveDataToDisk() {
 
 
 async function loadDataFromDisk() {
-  const pool = Pool.r(p(USDT), p(USDC), p(FEE)).fromJSON(
+  const pool = Pool.r(p(SUI), p(USDC), p(FEE)).fromJSON(
     JSON.parse(fs.readFileSync('pool.json').toString())
   )
   const ticks = []
@@ -93,16 +96,16 @@ async function loadDataFromDisk() {
   return { pool, ticks }
 }
 
-function calcAmounts(sqrtPa: Decimal, sqrtPb: Decimal, sqrtP: Decimal, l: Decimal) {
+function calcAmounts(sqrtPa: Decimal, sqrtPb: Decimal, sqrtP: Decimal, l: Decimal): Amounts {
   if (sqrtP.lessThanOrEqualTo(sqrtPa)) {
     return {
       amountX: l.mul(sqrtPb.sub(sqrtPa)).div(sqrtPb.mul(sqrtPa)),
-      amountY: 0
+      amountY: new Decimal(0)
     }
   }
   if (sqrtP.greaterThanOrEqualTo(sqrtPb)) {
     return {
-      amountX: 0,
+      amountX: new Decimal(0),
       amountY: l.mul(sqrtPb.sub(sqrtPa))
     }
   }
@@ -150,25 +153,24 @@ async function main() {
       amountY: prev.amountY.add(cur.amountY)
     }
   }, { amountX: new Decimal(0), amountY: new Decimal(0) })
-  exp.amountX = exp.amountX.div(1e6)
-  exp.amountY = exp.amountY.div(1e6)
+  exp.amountX = exp.amountX.div(xDecimals)
+  exp.amountY = exp.amountY.div(yDecimals)
   console.log('expected', JSON.stringify(exp, undefined, 2))
 
   const have = {
-    amountX: new Decimal(pool.coinA.value.toString()).div(1e6),
-    amountY: new Decimal(pool.coinB.value.toString()).div(1e6)
+    amountX: new Decimal(pool.coinA.value.toString()).div(xDecimals),
+    amountY: new Decimal(pool.coinB.value.toString()).div(yDecimals)
   }
   console.log('have', JSON.stringify(have, undefined, 2))
 
-  const p = sqrtP.pow(2)
-  const expY = exp.amountY.add(exp.amountX.mul(p))
-  const haveY = have.amountY.add(exp.amountX.mul(p))
-
-  console.log('USDC value', JSON.stringify({
-    exp: expY.toString(),
-    have: haveY.toString()
+  console.log('diff', JSON.stringify({
+    x: have.amountX.sub(exp.amountX).toString(),
+    y: have.amountY.sub(exp.amountY).toString()
   }, undefined, 2))
 
+  const p = sqrtP.pow(2).mul(xDecimals).div(yDecimals)
+  const expY = exp.amountY.add(exp.amountX.mul(p))
+  const haveY = have.amountY.add(have.amountX.mul(p))
   console.log('diff', haveY.sub(expY).toString(), 'USDC')
 }
 
